@@ -1,1 +1,1 @@
-# lab6
+# Chat on TCP socket
