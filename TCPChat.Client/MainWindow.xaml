@@ -1,0 +1,107 @@
+﻿<Window x:Class="TCPChat.Client.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:TCPChat.Client"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800" Closing="Window_Closing">
+    <Window.DataContext>
+        <local:MainViewModel/>
+    </Window.DataContext>
+    <Window.Resources>
+        <Style TargetType="TextBox">
+            <Setter Property="Margin" Value="3"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="TextBlock">
+            <Setter Property="Margin" Value="3"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Margin" Value="3"/>
+        </Style>
+    </Window.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <StackPanel>
+            <UniformGrid Columns="4">
+                <TextBlock Text="IP"/>
+                <TextBlock Text="Port"/>
+                <TextBlock Text="Nick"/>
+                <UniformGrid Columns="2">
+                    <Button x:Name="btnClosing" Content="Button" Visibility="Hidden" Command="{Binding DisonnectCommand}"/>
+                    <Button x:Name="btnJoinChat" Content="Button" Visibility="Hidden" Command="{Binding JoinChatCommand}"/>
+                </UniformGrid>
+            </UniformGrid>
+            <UniformGrid Columns="4">
+                <TextBox Text="{Binding IP}"/>
+                <TextBox Text="{Binding Port}"/>
+                <TextBox Text="{Binding Nick}"/>
+                <Button x:Name="btnCon" Command="{Binding ConnectCommand}" Content="Подключиться"/>
+            </UniformGrid>
+        </StackPanel>
+
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="3*"/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="1*"/>
+                    <RowDefinition Height="12*"/>
+                </Grid.RowDefinitions>
+
+                <UniformGrid Columns="3">
+                    <TextBox
+                        Text="{Binding NewChatName}"
+                        TextAlignment="Left"
+                        TextWrapping="Wrap"/>
+                    <Button
+                        Grid.Column="1"
+                        Command="{Binding CreateChatCommand}"
+                        Content="Создать чат" Margin="3,3,3,3"/>
+                    <ComboBox x:Name="cbChatList"
+                              Margin="3,3,3,3"
+                              ItemsSource="{Binding ChatList}"
+                              SelectedIndex="0"
+                              SelectedValue="{Binding SelectedChatName}"
+                              SelectionChanged="cbChatList_SelectionChanged"/>
+                </UniformGrid>
+                <TextBox x:Name="tbChat"
+                        Grid.Row="2"
+                        Text="{Binding Chat}"
+                        TextAlignment="Left"
+                        IsReadOnly="True"
+                        IsReadOnlyCaretVisible="True"
+                        TextWrapping="Wrap"
+                        TextChanged="TextBox_TextChanged"/>
+            </Grid>
+            <ListBox
+                Grid.Column="1"
+                ItemsSource="{Binding Users}" Margin="3,3,3,3"/>
+        </Grid>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="3*"/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <TextBox MaxLines="5"
+                     Text="{Binding Message}"
+                     TextAlignment="Left"
+                     TextWrapping="Wrap"/>
+            <Button
+                x:Name="btnSend"
+                Grid.Column="1"
+                Command="{Binding SendCommand}"
+                Content="Отправить"/>
+        </Grid>
+    </Grid>
+</Window>
