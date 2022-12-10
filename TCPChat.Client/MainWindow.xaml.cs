@@ -61,5 +61,20 @@ namespace TCPChat.Client
                 btnJoinChat.Command.Execute(btnJoinChat.CommandParameter);
             }
         }
+
+        private void ListBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            btnJoinPMChat.Command.Execute(btnJoinPMChat.CommandParameter);
+        }
+
+        private void tbPMChat_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            tbPMChat.ScrollToEnd();
+        }
+
+        private void TextBox_TextChanged_1(object sender, TextChangedEventArgs e)
+        {
+            tbSystemMessages.ScrollToEnd();
+        }
     }
 }

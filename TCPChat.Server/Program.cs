@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Threading.Tasks;
 using System.Text.Json;
 using System.Xml.Linq;
+using System.Collections.ObjectModel;
 
 namespace TCPChat.Server
 {
@@ -16,7 +17,7 @@ namespace TCPChat.Server
         static IPAddress ip = IPAddress.Parse("26.91.248.130");
         static TcpListener listener = new TcpListener(IPAddress.Any, 5050);
         static List<ConnectedClient> clientsList = new List<ConnectedClient>();
-        static List<ChatData> chatdataList = new List<ChatData>() { new ChatData("Общий чат", "Начало сессии...\n", new System.Collections.ObjectModel.ObservableCollection<string>()) };
+        static List<ChatData> chatdataList = new List<ChatData>() { new ChatData(ChatType.Common, "Общий чат", "Начало сессии...\n", null, new System.Collections.ObjectModel.ObservableCollection<string>()) };
 
         static void Main(string[] args)
         {
@@ -41,15 +42,12 @@ namespace TCPChat.Server
                                 clientsList.Add(new ConnectedClient(client, nick));
                                 Console.WriteLine($"Подключился {nick}");
                                 var clientData = clientsList.FirstOrDefault(s => s.Client == client);
-                                JoinChat(clientData, chatdataList.First()); //К общему ли чату подключит
+                                JoinChat(clientData, chatdataList.First());
                                 break;
                             }
                             else
-                            { 
-                                var sw = new StreamWriter(client.GetStream());
-                                sw.AutoFlush = true;
-                                string json = ChatDataToJSON("Система: Пользователь с таким ником уже есть" + System.Environment.NewLine, null);
-                                sw.WriteLine(json);
+                            {
+                                SendSystemMessageToClient("Пользователь с таким ником уже есть", client, ChatType.Common);
                                 client.Client.Disconnect(false);
                             }
                         }
@@ -59,53 +57,68 @@ namespace TCPChat.Server
                     {
                         try
                         {
-                            var clientData = clientsList.FirstOrDefault(s => s.Client == client);
+                            var clientData = FindClientData(client);
                             var line = sr.ReadLine();
-                            // && !string.IsNullOrWhiteSpace(nick)
+
                             if (line.StartsWith("Logout: "))
                             {
-                                Console.WriteLine($"{clientData.Name} отключился");
-                                ChatData activeChat = chatdataList.FirstOrDefault(s => s.Users.Contains(clientData.Name));
-                                activeChat.Users.Remove(clientData.Name); //проверить удаляет ли по ссылке из chatdata
-                                clientData.Client.Close();
-                                string msg = $"{clientData.Name} отключился" + System.Environment.NewLine;
-                                clientsList.Remove(clientData);
-                                SendToAllClientsInChat(msg, activeChat);
+                                DisconnectClient(clientData);
                                 break;
                             }
                             else if (line.StartsWith("Create: "))
                             {
                                 var chatname = line.Replace("Create: ", "");
-                                if (chatdataList.FirstOrDefault(s => s.Name == chatname) is null)
+                                bool ok = CreateChat(chatname);
+                                if (ok)
                                 {
-                                    chatdataList.Add(new ChatData(chatname, "", new System.Collections.ObjectModel.ObservableCollection<string>()));
-                                    ChatData chatData = chatdataList.FirstOrDefault(s => s.Name == chatname);
-                                    SendToAllChats($"{clientData.Name} создал чат {chatData.Name}" + System.Environment.NewLine);
+                                    SendSystemMessageToAll($"{clientData.Name} создал чат {chatname}", ChatType.Common);
                                     //JoinChat(clientData, chatData);
                                 }
-                                else
-                                {
-                                    var sw = new StreamWriter(client.GetStream());
-                                    sw.AutoFlush = true;
-                                    string json = ChatDataToJSON("Система: Чат с таким названием уже есть" + System.Environment.NewLine, null);
-                                    sw.WriteLine(json);
-                                }
+                                else SendSystemMessageToClient("Чат с таким названием уже есть", client, ChatType.Common);
                             }
                             else if (line.StartsWith("Join: "))
                             {
                                 var chatname = line.Replace("Join: ", "");
                                 ChatData chatData = chatdataList.FirstOrDefault(s => s.Name == chatname);
+                                if (chatData != null)
+                                {
+                                    JoinChat(clientData, chatData);
+                                }
+                            }
+                            else if (line.StartsWith("JoinPM: "))
+                            {
+                                var receiver = line.Replace("JoinPM: ", "");
+                                ChatData chatData = chatdataList.FirstOrDefault(s => s.Type == ChatType.PM && s.Clients.Contains(receiver) && s.Clients.Contains(clientData.Name));
+                                if (chatData == null)
+                                {
+                                    CreatePMChat(clientData.Name, receiver); 
+                                    chatData = chatdataList.FirstOrDefault(s => s.Type == ChatType.PM && s.Clients.Contains(receiver) && s.Clients.Contains(clientData.Name));
+                                }
+                                chatData.Name = $"PM: {receiver}";
                                 JoinChat(clientData, chatData);
                             }
                             else if (line.StartsWith("File: "))
                             {
 
                             }
+                            else if (line.StartsWith("PM: "))
+                            {
+                                var temp = line.Replace("PM: ", "");
+                                var receiver = temp.Substring(0, temp.IndexOfAny(new char[] { '[' }) - 1);
+                                var message = temp.Substring(receiver.Length);
+                                ChatData pmChat = chatdataList.FirstOrDefault(s => s.Type == ChatType.PM && s.Clients.Contains(clientData.Name) && s.Clients.Contains(receiver));
+
+                                pmChat.Chat += message + System.Environment.NewLine;
+
+                                SendChatDataToAllInChat(pmChat);
+                                Console.WriteLine("PM: " + receiver + " >> " + message);
+                            }
                             else
                             {
-                                ChatData activeChat = chatdataList.FirstOrDefault(s => s.Users.Contains(clientData.Name));
-                                SendToAllClientsInChat(line + System.Environment.NewLine, activeChat);
-                                Console.WriteLine(line);
+                                ChatData activeChat = chatdataList.FirstOrDefault(s => s.Type == ChatType.Common && s.Clients.Contains(clientData.Name));
+                                activeChat.Chat += line + System.Environment.NewLine;
+                                SendChatDataToAllInChat(activeChat);
+                                Console.WriteLine("Chat: " + activeChat.Name + " >> " + line);
                             }
                         }
                         catch (Exception ex)
@@ -119,20 +132,37 @@ namespace TCPChat.Server
 
         private static void JoinChat(ConnectedClient clientData, ChatData chatData)
         {
-            string json = "";
-            ChatData? activeChat = chatdataList.FirstOrDefault(s => s.Users.Contains(clientData.Name));
-            if (activeChat != null)
+            switch (chatData.Type)
             {
-                activeChat.Users.Remove(clientData.Name);
-                SendToAllClientsInChat($"Покинул чат - {clientData.Name}" + System.Environment.NewLine, activeChat);
+                case ChatType.PM:
+                    {
+                        SendChatDataToClient(clientData.Client, chatData);
+                        break;
+                    }
+                case ChatType.Common:
+                    {
+                        ChatData? activeChat = chatdataList.FirstOrDefault(s => s.Clients.Contains(clientData.Name));
+                        if (activeChat != null)
+                        {
+                            activeChat.Clients.Remove(clientData.Name);
+                            chatData.Chat += $"Покинул чат - {clientData.Name}" + System.Environment.NewLine;
+                            SendChatDataToAllInChat(activeChat);
+                            //SendSystemMessageToAllInChat($"Покинул чат - {clientData.Name}" + System.Environment.NewLine, activeChat);
+                        }
+                        chatData.Clients.Add(clientData.Name);
+                        chatData.Chat += $"Присоединился к чату - {clientData.Name}" + System.Environment.NewLine;
+                        SendChatDataToAllInChat(chatData);
+                        //SendSystemMessageToAllInChat($"Присоединился к чату - {clientData.Name}" + System.Environment.NewLine, chatData);
+                        break;
+                    }
+                default:
+                    break;
             }
-            chatData.Users.Add(clientData.Name);
-            SendToAllClientsInChat($"Присоединился к чату - {clientData.Name}" + System.Environment.NewLine, chatData);
         }
 
-        private static string ChatDataToJSON(string message, ChatData chatData)
+        /*private static string ChatDataToJSON(string message, ChatData chatData)
         {
-            ChatData cdata = new ChatData("", "", new System.Collections.ObjectModel.ObservableCollection<string>());
+            ChatData cdata = new ChatData(chatData.Type, "", "", new System.Collections.ObjectModel.ObservableCollection<string>());
             if (chatData != null)
             {
                 chatData.Chat += message;
@@ -151,9 +181,155 @@ namespace TCPChat.Server
             string json = JsonSerializer.Serialize(cdata);
             cdata.SystemMessage = null;
             return json;
+        }*/
+
+        private static void CreatePMChat(string user1, string user2)
+        {
+            chatdataList.Add(new ChatData(ChatType.PM, $"PM: {user2}", null, "", new System.Collections.ObjectModel.ObservableCollection<string>() { user1, user2 }));
+        }
+        private static bool CreateChat(string chatname)
+        {
+            if (chatdataList.FirstOrDefault(s => s.Name == chatname) is null)
+            {
+                chatdataList.Add(new ChatData(ChatType.Common, chatname, "", null, new System.Collections.ObjectModel.ObservableCollection<string>()));
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+/*
+        private static ChatData TakeChatInfo()
+        {
+            ChatData cdata = new ChatData()
+        }*/
+
+        private static ObservableCollection<string> ToObservableCollection(List<string> list)
+        {
+            ObservableCollection<string> collection = new ObservableCollection<string>();
+            foreach (var item in list)
+            {
+                collection.Add(item);
+            }
+            return collection;
         }
 
-        private static void SendToAllClientsInChat(string msg, ChatData chatData)
+        private static void DisconnectClient(ConnectedClient clientData)
+        {
+            string name = clientData.Name;
+
+            ChatData activeChat = chatdataList.FirstOrDefault(s => s.Clients.Contains(clientData.Name));
+            activeChat.Clients.Remove(name);
+            clientData.Client.Close();
+            clientsList.Remove(clientData);
+
+            Console.WriteLine($"{name} отключился");
+            string msg = $"Покинул чат - {clientData.Name}" + System.Environment.NewLine;
+            activeChat.Chat += msg;
+            SendChatDataToAllInChat(activeChat);
+            SendSystemMessageToAll($"{name} отключился", ChatType.Common);
+        }
+
+        private static ConnectedClient FindClientData(TcpClient client)
+        {
+            return clientsList.FirstOrDefault(s => s.Client == client);
+        }
+        private static ConnectedClient FindClientData(string name)
+        {
+            return clientsList.FirstOrDefault(s => s.Name == name);
+        }
+
+        private static ObservableCollection<string> GetClientInChatInfo(string clientname)
+        {
+            return chatdataList.FirstOrDefault(s => s.Type == ChatType.Common && s.Clients.Contains(clientname)).Clients;
+        }
+        private static ObservableCollection<string> GetChatListInfo()
+        {
+            return ToObservableCollection(chatdataList.FindAll(s => s.Type == ChatType.Common).ToList().Select(s => s.Name).ToList());
+        }
+
+        private static void SendSystemMessageToAll(string msg, ChatType chattype)
+        {
+            foreach (var clientData in clientsList)
+            {
+                SendSystemMessageToClient(msg, clientData.Client, chattype, GetClientInChatInfo(clientData.Name), GetChatListInfo());
+            }
+        }
+        private static void SendSystemMessageToAllInChat(string msg, ChatData chatData)
+        {
+            foreach (var client in chatData.Clients)
+            {
+                var clientData = clientsList.FirstOrDefault(s => s.Name == client);
+                SendSystemMessageToClient(msg, clientData.Client, chatData.Type);
+            }
+        }
+        private static void SendSystemMessageToClient(string msg, TcpClient client, ChatType chattype, ObservableCollection<string> Clients = null, ObservableCollection<string> ChatList = null)
+        {
+            Task.Run(() =>
+            {
+                try
+                {
+                    var time = DateTime.UtcNow;
+                    ChatData cdata = new ChatData(chattype, null, null, $"{System.Environment.NewLine}[{time.Hour}:{time.Minute}:{time.Second}] Система: {msg}", new System.Collections.ObjectModel.ObservableCollection<string>());
+                    if (Clients != null && ChatList != null)
+                    {
+                        cdata.Clients = Clients;
+                        cdata.ChatList = ChatList;
+                    }
+                    string json = JsonSerializer.Serialize(cdata);
+                    SendJsonToClient(json, client);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
+            });
+        }
+
+        private static void SendChatDataToAll(ChatData chatData)
+        {
+            foreach (var clientData in clientsList)
+            {
+                SendChatDataToClient(clientData.Client, chatData);
+            }
+        }
+        private static void SendChatDataToAllInChat(ChatData chatData)
+        {
+            foreach (var client in chatData.Clients)
+            {
+                var clientData = clientsList.FirstOrDefault(s => s.Name == client);
+                SendChatDataToClient(clientData.Client, chatData);
+            }
+        }
+        private static void SendChatDataToClient(TcpClient client, ChatData chatData)
+        {
+            Task.Run(() =>
+            {
+                try
+                {
+                    chatData.ChatList = GetChatListInfo();
+                    string json = JsonSerializer.Serialize(chatData);
+                    SendJsonToClient(json, client);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
+            });
+        }
+
+        private static void SendJsonToClient(string json, TcpClient client)
+        {
+            if (client.Connected)
+            {
+                var sw = new StreamWriter(client.GetStream());
+                sw.AutoFlush = true;
+                sw.WriteLine(json);
+            }
+        }
+        
+        /*private static void SendToAllClientsInChat(string msg, ChatData chatData)
         {
             Task.Run(() =>
             {
@@ -176,8 +352,8 @@ namespace TCPChat.Server
                     }
                 }
             });
-        }
-        private static void SendToAllChats(string msg)
+        }*/
+        /*private static void SendToAllChats(string msg)
         {
             Task.Run(() =>
             {
@@ -203,6 +379,6 @@ namespace TCPChat.Server
                     }
                 }
             });
-        }
+        }*/
     }
 }

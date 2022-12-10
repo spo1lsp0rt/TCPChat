@@ -32,16 +32,17 @@
             <UniformGrid Columns="4">
                 <TextBlock Text="IP"/>
                 <TextBlock Text="Port"/>
-                <TextBlock Text="Nick"/>
-                <UniformGrid Columns="2">
+                <TextBlock Text="Name"/>
+                <UniformGrid Columns="3">
                     <Button x:Name="btnClosing" Content="Button" Visibility="Hidden" Command="{Binding DisonnectCommand}"/>
                     <Button x:Name="btnJoinChat" Content="Button" Visibility="Hidden" Command="{Binding JoinChatCommand}"/>
+                    <Button x:Name="btnJoinPMChat" Content="Button" Visibility="Hidden" Command="{Binding JoinPMChatCommand}"/>
                 </UniformGrid>
             </UniformGrid>
             <UniformGrid Columns="4">
                 <TextBox Text="{Binding IP}"/>
                 <TextBox Text="{Binding Port}"/>
-                <TextBox Text="{Binding Nick}"/>
+                <TextBox Text="{Binding Name}" />
                 <Button x:Name="btnCon" Command="{Binding ConnectCommand}" Content="Подключиться"/>
             </UniformGrid>
         </StackPanel>
@@ -52,8 +53,9 @@
                 <ColumnDefinition Width="3*"/>
                 <ColumnDefinition/>
             </Grid.ColumnDefinitions>
-            <Grid>
+            <Grid Grid.Column="0">
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="1*"/>
                     <RowDefinition Height="1*"/>
                     <RowDefinition Height="12*"/>
                 </Grid.RowDefinitions>
@@ -72,26 +74,80 @@
                               ItemsSource="{Binding ChatList}"
                               SelectedIndex="0"
                               SelectedValue="{Binding SelectedChatName}"
-                              SelectionChanged="cbChatList_SelectionChanged"/>
+                              SelectionChanged="cbChatList_SelectionChanged" Padding="3,0,0,0"/>
                 </UniformGrid>
+                <TextBox x:Name="tbSystemMessages"
+                         VerticalScrollBarVisibility="Visible"
+                         Panel.ZIndex="1"
+                         Grid.Row="1"
+                         Text="{Binding SystemChat}"
+                         Foreground="Red"
+                         IsReadOnly="True"
+                         IsReadOnlyCaretVisible="True"
+                         TextWrapping="Wrap"
+                         TextChanged="TextBox_TextChanged_1"/>
                 <TextBox x:Name="tbChat"
-                        Grid.Row="2"
-                        Text="{Binding Chat}"
-                        TextAlignment="Left"
-                        IsReadOnly="True"
-                        IsReadOnlyCaretVisible="True"
-                        TextWrapping="Wrap"
-                        TextChanged="TextBox_TextChanged"/>
+                         Grid.Row="1"
+                         Grid.RowSpan="2"
+                         Text="{Binding Chat}"
+                         TextAlignment="Left"
+                         IsReadOnly="True"
+                         IsReadOnlyCaretVisible="True"
+                         TextWrapping="Wrap"
+                         TextChanged="TextBox_TextChanged"/>
             </Grid>
-            <ListBox
-                Grid.Column="1"
-                ItemsSource="{Binding Users}" Margin="3,3,3,3"/>
+            <Grid  Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="1*"/>
+                    <RowDefinition Height="1*"/>
+                </Grid.RowDefinitions>
+                <ListBox Grid.Row="0"
+                         ItemsSource="{Binding Users}" Margin="3,3,3,3"
+                         SelectedItem="{Binding SelectedClientName}"
+                         MouseDoubleClick="ListBox_MouseDoubleClick"/>
+                <Grid Grid.Row="1">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="1*"/>
+                        <RowDefinition Height="5*"/>
+                        <RowDefinition Height="1*"/>
+                    </Grid.RowDefinitions>
+                    <TextBox Grid.Row="0" 
+                             Text="{Binding PMChatName}" 
+                             Panel.ZIndex="1" 
+                             Background="White" 
+                             IsReadOnly="True"/>
+                    <TextBox Grid.Row="0" Grid.RowSpan="2" x:Name="tbPMChat"
+                             Text="{Binding PMChat}"
+                             TextAlignment="Left"
+                             IsReadOnly="True"
+                             IsReadOnlyCaretVisible="True"
+                             TextWrapping="Wrap" 
+                             TextChanged="tbPMChat_TextChanged"
+                             Padding="0,15,0,0"/>
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="4*"/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox
+                            Text="{Binding PersonalMessage}"
+                            TextAlignment="Left"
+                            TextWrapping="Wrap"/>
+                        <Button
+                            x:Name="btnSendPM"
+                            Grid.Column="1"
+                            Command="{Binding SendPMCommand}"
+                            Content="✉"/>
+                    </Grid>
+                </Grid>
+            </Grid>
         </Grid>
 
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="3*"/>
-                <ColumnDefinition/>
+                <ColumnDefinition Width="14*"/>
+                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="5*"/>
             </Grid.ColumnDefinitions>
             <TextBox MaxLines="5"
                      Text="{Binding Message}"
@@ -101,7 +157,7 @@
                 x:Name="btnSend"
                 Grid.Column="1"
                 Command="{Binding SendCommand}"
-                Content="Отправить"/>
+                Content="✉"/>
         </Grid>
     </Grid>
 </Window>

@@ -22,15 +22,33 @@ namespace TCPChat.Client
     {
         public string IP { get; set; } = "127.0.0.1";
         public int Port { get; set; } = 5050;
-        public string Nick { get; set; } = "Nick";
+        public string Name { get; set; } = "Name";
+        //public string Password { get; set; } = "Password"; <TextBox MaxLength="8" Text="{Binding Password}"/>
         public string NewChatName { get; set; } = "Новая комната";
         public string SelectedChatName { get; set; }
+        public string SelectedClientName { get; set; }
         public string Chat 
         { 
             get => GetValue<string>(); 
             set => SetValue(value);
         }
+        public string SystemChat
+        {
+            get => GetValue<string>();
+            set => SetValue(value);
+        }
+        public string PMChatName
+        {
+            get => GetValue<string>();
+            set => SetValue(value);
+        }
+        public string PMChat 
+        { 
+            get => GetValue<string>(); 
+            set => SetValue(value);
+        }
         public string Message { get => GetValue<string>(); set => SetValue(value); }
+        public string PersonalMessage { get => GetValue<string>(); set => SetValue(value); }
         public ObservableCollection<string> Users { get; set; } = new ObservableCollection<string>();
         public ObservableCollection<string> ChatList { get; set; } = new ObservableCollection<string>();
 
@@ -57,26 +75,74 @@ namespace TCPChat.Client
                             if (json != null)
                             {
                                 var cdata = JsonSerializer.Deserialize<ChatData>(json);
+
                                 if (cdata.SystemMessage != null)
                                 {
-                                    Chat += cdata.SystemMessage;
+                                    SystemChat += cdata.SystemMessage;
                                 }
-                                else
+                                switch (cdata.Type)
                                 {
-                                    Chat = cdata.Chat;
-                                    App.Current.Dispatcher.Invoke((Action)delegate
-                                    {
-                                        Users.Clear();
-                                        foreach (string nick in cdata.Users)
+                                    case ChatType.PM:
                                         {
-                                            Users.Add(nick);
+                                            if (cdata.Clients.Contains(SelectedClientName))
+                                            {
+                                                PMChatName = $"PM: {SelectedClientName}";
+                                                if (cdata.Chat != null)
+                                                {
+                                                    PMChat = cdata.Chat;
+                                                }
+                                            }
+                                            /*else
+                                            {
+                                                var tempUsers = Users;
+                                                App.Current.Dispatcher.Invoke((Action)delegate
+                                                {
+                                                    Users.Clear();
+                                                    foreach (string nick in tempUsers)
+                                                    {
+                                                        string temp = nick;
+                                                        if (temp == Name)
+                                                            temp += " (Я)";
+                                                        if (temp == SelectedClientName)
+                                                            temp += " Новое сообщение";
+                                                        Users.Add(temp);
+                                                    }
+                                                });
+                                            }*/
+                                            break;
                                         }
-                                        foreach (string chat in cdata.ChatList)
+                                    case ChatType.Common:
                                         {
-                                            if (!ChatList.Contains(chat))
-                                                ChatList.Add(chat);
+                                            if (cdata.Chat != null)
+                                            {
+                                                Chat = cdata.Chat;
+                                            }
+                                            App.Current.Dispatcher.Invoke((Action)delegate
+                                            {
+                                                foreach (string chat in cdata.ChatList)
+                                                {
+                                                    if (!ChatList.Contains(chat))
+                                                        ChatList.Add(chat);
+                                                }
+                                            });
+                                            if (cdata.Clients.Count > 0)
+                                            {
+                                                App.Current.Dispatcher.Invoke((Action)delegate
+                                                {
+                                                    Users.Clear();
+                                                    foreach (string nick in cdata.Clients)
+                                                    {
+                                                        string temp = nick;
+                                                        if (temp == Name) 
+                                                            temp += " (Я)";
+                                                        Users.Add(temp);
+                                                    }
+                                                });
+                                            }
+                                            break;
                                         }
-                                    });
+                                    default:
+                                        break;
                                 }
                             }
                             else
@@ -94,6 +160,7 @@ namespace TCPChat.Client
                 }
             });
         }
+
         public AsyncCommand CreateChatCommand
         {
             get
@@ -134,6 +201,29 @@ namespace TCPChat.Client
                 }, () => _client?.Connected == true);
             }
         }
+        public AsyncCommand JoinPMChatCommand
+        {
+            get
+            {
+                return new AsyncCommand(() =>
+                {
+                    return Task.Run(() =>
+                    {
+                        if (SelectedClientName != Name + " (Я)")
+                        {
+                            try
+                            {
+                                _writer?.WriteLine($"JoinPM: {SelectedClientName}");
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageBox.Show(ex.Message);
+                            }
+                        }
+                    });
+                }, () => _client?.Connected == true);
+            }
+        }
 
         public AsyncCommand DisonnectCommand
         {
@@ -145,7 +235,7 @@ namespace TCPChat.Client
                     {
                         try
                         {
-                            _writer.WriteLine($"Logout: {Nick}");
+                            _writer.WriteLine($"Logout: {Name}");
                         }
                         catch (Exception ex)
                         {
@@ -172,8 +262,7 @@ namespace TCPChat.Client
                             _writer = new StreamWriter(_client.GetStream());
                             Listener();
                             _writer.AutoFlush = true;
-
-                            _writer.WriteLine($"Login: {Nick}");
+                            _writer.WriteLine($"Login: {Name}");
                         }
                         catch (Exception ex)
                         {
@@ -184,6 +273,24 @@ namespace TCPChat.Client
             }
         }
 
+        public AsyncCommand SendPMCommand
+        {
+            get
+            {
+                return new AsyncCommand(() =>
+                {
+                    return Task.Run(() =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(PersonalMessage))
+                        {
+                            var time = DateTime.UtcNow;
+                            _writer?.WriteLine($"PM: {SelectedClientName} [{time.Hour}:{time.Minute}:{time.Second}] {Name}: {PersonalMessage}");
+                            PersonalMessage = "";
+                        }
+                    });
+                }, () => _client?.Connected == true);
+            }
+        }
         public AsyncCommand SendCommand
         {
             get
@@ -194,7 +301,8 @@ namespace TCPChat.Client
                     {
                         if (!string.IsNullOrWhiteSpace(Message))
                         {
-                            _writer?.WriteLine($"[{DateTime.UtcNow}] {Nick}: {Message}");
+                            var time = DateTime.UtcNow;
+                            _writer?.WriteLine($"[{time.Hour}:{time.Minute}:{time.Second}] {Name}: {Message}");
                             Message = "";
                         }
                     });

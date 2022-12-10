@@ -6,6 +6,7 @@ namespace TCPChat.Server
     {
         public TcpClient Client { get; set; }
         public string Name { get; set; }
+        //public string Password { get; set; }
 
         public ConnectedClient(TcpClient client, string name)
         {
