@@ -107,7 +107,8 @@ namespace TCPChat.Server
                                 ChatData activeChat = chatdataList.FirstOrDefault(s => s.Type == ChatType.Common && s.Clients.Contains(clientData.Name));
                                 string msg = $"{clientData.Name} отправил файл {name} (проверьте папку \"Downloads\")" + System.Environment.NewLine;
                                 activeChat.Chat += msg;
-                                activeChat.FileName = name;
+                                var time = DateTime.UtcNow;
+                                activeChat.FileName = $"[{time.Hour}_{time.Minute}_{time.Second}]{clientData.Name}-{name}";
                                 activeChat.FileBase = file;
                                 SendChatDataToAllInChat(activeChat);
                                 Console.WriteLine("Chat: " + activeChat.Name + " >> " + msg);

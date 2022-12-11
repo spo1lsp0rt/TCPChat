@@ -69,6 +69,7 @@
                         TextWrapping="Wrap"/>
                     <Button
                         Grid.Column="1"
+                        Padding="0,0,0,2"
                         Command="{Binding CreateChatCommand}"
                         Content="Создать чат" Margin="3,3,3,3"/>
                     <ComboBox x:Name="cbChatList"
@@ -76,7 +77,7 @@
                               ItemsSource="{Binding ChatList}"
                               SelectedIndex="0"
                               SelectedValue="{Binding SelectedChatName}"
-                              SelectionChanged="cbChatList_SelectionChanged" Padding="3,0,0,0"/>
+                              SelectionChanged="cbChatList_SelectionChanged" Padding="4,1,0,0"/>
                 </UniformGrid>
                 <TextBox x:Name="tbSystemMessages"
                          VerticalScrollBarVisibility="Visible"
@@ -139,6 +140,7 @@
                             TextWrapping="Wrap"/>
                         <Button
                             x:Name="btnSendPM"
+                            Padding="0,0,0,2"
                             Grid.Column="1"
                             Command="{Binding SendPMCommand}"
                             Content="✉"/>
@@ -173,13 +175,15 @@
             </Grid>
             <Button
                 x:Name="btnSend"
+                Padding="0,0,0,1"
                 Grid.Column="1"
                 Content="✉"
                 Click="btnSend_Click"/>
             <Button
                 x:Name="btnChooseFile"
+                Padding="0,0,0,2"
                 Grid.Column="2"
-                Content="🗎" Click="btnChooseFile_Click" />
+                Content="📁" Click="btnChooseFile_Click" />
         </Grid>
     </Grid>
 </Window>
