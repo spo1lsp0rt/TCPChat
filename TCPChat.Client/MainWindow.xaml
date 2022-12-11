@@ -33,10 +33,12 @@
                 <TextBlock Text="IP"/>
                 <TextBlock Text="Port"/>
                 <TextBlock Text="Name"/>
-                <UniformGrid Columns="3">
+                <UniformGrid Columns="5">
                     <Button x:Name="btnClosing" Content="Button" Visibility="Hidden" Command="{Binding DisonnectCommand}"/>
                     <Button x:Name="btnJoinChat" Content="Button" Visibility="Hidden" Command="{Binding JoinChatCommand}"/>
                     <Button x:Name="btnJoinPMChat" Content="Button" Visibility="Hidden" Command="{Binding JoinPMChatCommand}"/>
+                    <Button x:Name="btnSendMsg" Content="Button" Visibility="Hidden" Command="{Binding SendCommand}"/>
+                    <Button x:Name="btnSendFile" Content="Button" Visibility="Hidden" Command="{Binding SendFileCommand}"/>
                 </UniformGrid>
             </UniformGrid>
             <UniformGrid Columns="4">
@@ -152,20 +154,31 @@
                 <ColumnDefinition Width="1*"/>
                 <ColumnDefinition Width="5*"/>
             </Grid.ColumnDefinitions>
-            <TextBox x:Name="tbMessage"
+            <Grid>
+                <TextBox x:Name="tbMessage"
                      MaxLines="5"
                      Text="{Binding Message}"
                      TextAlignment="Left"
                      TextWrapping="Wrap"/>
+                <Button x:Name="btnCancelFile"
+                        Content="x"
+                        Margin="0,4,14,4"
+                        Padding="0,0,0,2"
+                        HorizontalAlignment="Right"
+                        Panel.ZIndex="1"
+                        BorderBrush="White"
+                        Background="White"
+                        Visibility="Hidden"
+                        Click="btnCancelFile_Click"/>
+            </Grid>
             <Button
                 x:Name="btnSend"
                 Grid.Column="1"
-                Command="{Binding SendCommand}"
-                Content="✉"/>
+                Content="✉"
+                Click="btnSend_Click"/>
             <Button
                 x:Name="btnChooseFile"
                 Grid.Column="2"
-                Command="{Binding SendFileCommand}"
                 Content="🗎" Click="btnChooseFile_Click" />
         </Grid>
     </Grid>

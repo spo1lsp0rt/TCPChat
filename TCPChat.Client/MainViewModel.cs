@@ -19,6 +19,9 @@ using System.Drawing;
 using System.Buffers.Text;
 using Microsoft.WindowsAPICodePack.Dialogs;
 using Microsoft.WindowsAPICodePack.Shell;
+using static System.Net.WebRequestMethods;
+using System.Xml.Linq;
+using File = System.IO.File;
 
 namespace TCPChat.Client
 {
@@ -80,14 +83,33 @@ namespace TCPChat.Client
                                                 {
                                                     PMChat = cdata.Chat;
                                                 }
+                                                if (cdata.FileName != null)
+                                                {
+                                                    string downloadsPath = KnownFolders.Downloads.Path;
+                                                    string chatpath = downloadsPath + "\\TCPChat\\" + PMChatName + cdata.FileName;
+                                                    Directory.CreateDirectory(Path.GetDirectoryName(chatpath));
+                                                    Byte[] bytes = Convert.FromBase64String(cdata.FileBase64);
+                                                    File.WriteAllBytes(chatpath, bytes);
+                                                }
                                             }
                                             break;
                                         }
                                     case ChatType.Common:
                                         {
-                                            if (cdata.Chat != null)
+                                            if (cdata.Name != null)
                                             {
                                                 Chat = cdata.Chat;
+                                            }
+                                            if (cdata.FileName != null)
+                                            {
+                                                string downloadsPath = KnownFolders.Downloads.Path;
+                                                string chatpath = downloadsPath + "\\TCPChat\\";
+                                                if (cdata.Chat != null)
+                                                    chatpath += cdata.Name + "\\";
+                                                chatpath += cdata.FileName;
+                                                Directory.CreateDirectory(Path.GetDirectoryName(chatpath));
+                                                Byte[] bytes = Convert.FromBase64String(cdata.FileBase64);
+                                                File.WriteAllBytes(chatpath, bytes);
                                             }
                                             App.Current.Dispatcher.Invoke((Action)delegate
                                             {
@@ -274,20 +296,16 @@ namespace TCPChat.Client
                         try
                         {
 
-                            if (!string.IsNullOrWhiteSpace(FileName))
+                            if (!string.IsNullOrWhiteSpace(Message))
                             {
+                                FileName = Message;
+                                Message = "";
                                 string path = FileName;
                                 int i = path.LastIndexOfAny(new char[] { '\\' }) + 1;
                                 string name = path.Substring(i);
                                 Byte[] bytes = File.ReadAllBytes(path);
                                 String file = Convert.ToBase64String(bytes);
-                                FileName = "🗎";
-                                //"E:\\Downloads\\folder\\Презентация Microsoft PowerPoint.pptx"
-
-                                //---
-                                string downloadsPath = KnownFolders.Downloads.Path;
-                                Byte[] bytes1 = Convert.FromBase64String(file);
-                                File.WriteAllBytes(downloadsPath + "\\" + name, bytes);
+                                _writer?.WriteLine($"File: {name}:{file}");
                             }
                         }
                         catch (Exception ex)

@@ -21,7 +21,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Microsoft.WindowsAPICodePack.Dialogs;
-
+using DevExpress.Mvvm.POCO;
 
 namespace TCPChat.Client
 {
@@ -83,7 +83,41 @@ namespace TCPChat.Client
         {
             var dialog = new CommonOpenFileDialog();
             CommonFileDialogResult result = dialog.ShowDialog();
-            string folder = dialog.FileName;
+            if (result == CommonFileDialogResult.Ok)
+            {
+                string folder = dialog.FileName;
+                tbMessage.Text = folder;
+                tbMessage.CaretIndex = 0; //Боже храни королеву от таких костылей
+                tbMessage.Focus();
+                tbMessage.IsEnabled = false;
+                btnCancelFile.Visibility = Visibility.Visible;
+            }
+        }
+
+        private void btnCancelFile_Click(object sender, RoutedEventArgs e)
+        {
+            tbMessage.Text = "";
+            tbMessage.CaretIndex = 0;
+            tbMessage.Focus();
+            tbMessage.IsEnabled = true;
+            btnCancelFile.Visibility = Visibility.Hidden;
+        }
+
+        private void btnSend_Click(object sender, RoutedEventArgs e)
+        {
+            if (btnCancelFile.Visibility == Visibility.Hidden)
+            {
+                btnSendMsg.Command.Execute(btnSendMsg.CommandParameter);
+            }
+            else
+            {
+                btnSendFile.Command.Execute(btnSendFile.CommandParameter);
+                tbMessage.Text = "";
+                tbMessage.CaretIndex = 0;
+                tbMessage.Focus();
+                tbMessage.IsEnabled = true;
+                btnCancelFile.Visibility = Visibility.Hidden;
+            }
         }
     }
 }

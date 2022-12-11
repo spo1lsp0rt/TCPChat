@@ -10,6 +10,7 @@ using System.Xml.Linq;
 using System.Collections.ObjectModel;
 using System.Buffers.Text;
 using System.Text;
+using static System.Net.WebRequestMethods;
 
 namespace TCPChat.Server
 {
@@ -19,7 +20,7 @@ namespace TCPChat.Server
         static IPAddress ip = IPAddress.Parse("26.91.248.130");
         static TcpListener listener = new TcpListener(IPAddress.Any, 5050);
         static List<ConnectedClient> clientsList = new List<ConnectedClient>();
-        static List<ChatData> chatdataList = new List<ChatData>() { new ChatData(ChatType.Common, "Общий чат", "Начало сессии...\n", null, new System.Collections.ObjectModel.ObservableCollection<string>()) };
+        static List<ChatData> chatdataList = new List<ChatData>() { new ChatData(ChatType.Common, "Общий чат", "Начало сессии...\n", new System.Collections.ObjectModel.ObservableCollection<string>()) };
 
         static void Main(string[] args)
         {
@@ -101,12 +102,21 @@ namespace TCPChat.Server
                             }
                             else if (line.StartsWith("File: "))
                             {
-                                /*string encodedStr = Convert.ToBase64String(Encoding.UTF8.GetBytes("inputStr")); 
-                                string inputStr = Encoding.UTF8.GetString(Convert.FromBase64String(encodedStr));*/
+                                var temp = line.Substring(5);
+                                var name = temp.Substring(0, temp.IndexOfAny(new char[] { ':' }) - 1);
+                                var file = temp.Substring(name.Length);
+                                ChatData activeChat = chatdataList.FirstOrDefault(s => s.Type == ChatType.Common && s.Clients.Contains(clientData.Name));
+                                string msg = $"{clientData.Name} отправил файл {name} (проверьте папку \"Downloads\")" + System.Environment.NewLine;
+                                activeChat.Chat += msg;
+                                activeChat.FileName = name;
+                                activeChat.FileBase64 = file;
+                                SendChatDataToAllInChat(activeChat);
+                                Console.WriteLine("Chat: " + activeChat.Name + " >> " + msg);
+
                             }
                             else if (line.StartsWith("PM: "))
                             {
-                                var temp = line.Replace("PM: ", "");
+                                var temp = line.Substring(3);
                                 var receiver = temp.Substring(0, temp.IndexOfAny(new char[] { '[' }) - 1);
                                 var message = temp.Substring(receiver.Length);
                                 ChatData pmChat = chatdataList.FirstOrDefault(s => s.Type == ChatType.PM && s.Clients.Contains(clientData.Name) && s.Clients.Contains(receiver));
@@ -163,38 +173,15 @@ namespace TCPChat.Server
             }
         }
 
-        /*private static string ChatDataToJSON(string message, ChatData chatData)
-        {
-            ChatData cdata = new ChatData(chatData.Type, "", "", new System.Collections.ObjectModel.ObservableCollection<string>());
-            if (chatData != null)
-            {
-                chatData.Chat += message;
-                cdata = chatData;
-                cdata.ChatList.Clear();
-                foreach (ChatData chat in chatdataList)
-                {
-                    cdata.ChatList.Add(chat.Name);
-                }
-            }
-            else
-            {
-                cdata.SystemMessage = message;
-            }
-
-            string json = JsonSerializer.Serialize(cdata);
-            cdata.SystemMessage = null;
-            return json;
-        }*/
-
         private static void CreatePMChat(string user1, string user2)
         {
-            chatdataList.Add(new ChatData(ChatType.PM, $"PM: {user2}", null, "", new System.Collections.ObjectModel.ObservableCollection<string>() { user1, user2 }));
+            chatdataList.Add(new ChatData(ChatType.PM, $"PM: {user2}", "", new System.Collections.ObjectModel.ObservableCollection<string>() { user1, user2 }));
         }
         private static bool CreateChat(string chatname)
         {
             if (chatdataList.FirstOrDefault(s => s.Name == chatname) is null)
             {
-                chatdataList.Add(new ChatData(ChatType.Common, chatname, "", null, new System.Collections.ObjectModel.ObservableCollection<string>()));
+                chatdataList.Add(new ChatData(ChatType.Common, chatname, "", new System.Collections.ObjectModel.ObservableCollection<string>()));
                 return true;
             }
             else
@@ -202,11 +189,6 @@ namespace TCPChat.Server
                 return false;
             }
         }
-/*
-        private static ChatData TakeChatInfo()
-        {
-            ChatData cdata = new ChatData()
-        }*/
 
         private static ObservableCollection<string> ToObservableCollection(List<string> list)
         {
@@ -274,7 +256,7 @@ namespace TCPChat.Server
                 try
                 {
                     var time = DateTime.UtcNow;
-                    ChatData cdata = new ChatData(chattype, null, null, $"{System.Environment.NewLine}[{time.Hour}:{time.Minute}:{time.Second}] Система: {msg}", new System.Collections.ObjectModel.ObservableCollection<string>());
+                    ChatData cdata = new ChatData(chattype, null, $"{System.Environment.NewLine}[{time.Hour}:{time.Minute}:{time.Second}] Система: {msg}", new System.Collections.ObjectModel.ObservableCollection<string>());
                     if (Clients != null && ChatList != null)
                     {
                         cdata.Clients = Clients;
@@ -331,57 +313,5 @@ namespace TCPChat.Server
                 sw.WriteLine(json);
             }
         }
-        
-        /*private static void SendToAllClientsInChat(string msg, ChatData chatData)
-        {
-            Task.Run(() =>
-            {
-                string json = ChatDataToJSON(msg, chatData);
-                for (int i = 0; i < chatData.Users.Count; i++)
-                {
-                    try
-                    {
-                        var client = clientsList.FirstOrDefault(s => s.Name == chatData.Users[i]);
-                        if (client.Client.Connected)
-                        {
-                            var sw = new StreamWriter(client.Client.GetStream());
-                            sw.AutoFlush = true;
-                            sw.WriteLine(json);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine(ex.Message);
-                    }
-                }
-            });
-        }*/
-        /*private static void SendToAllChats(string msg)
-        {
-            Task.Run(() =>
-            {
-                for (int i = 0; i < chatdataList.Count; i++)
-                {
-                    string json = ChatDataToJSON(msg, chatdataList[i]);
-                    for (int j = 0; j < chatdataList[i].Users.Count; j++)
-                    {
-                        try
-                        {
-                            var client = clientsList.FirstOrDefault(s => s.Name == chatdataList[i].Users[j]);
-                            if (client.Client.Connected)
-                            {
-                                var sw = new StreamWriter(client.Client.GetStream());
-                                sw.AutoFlush = true;
-                                sw.WriteLine(json);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine(ex.Message);
-                        }
-                    }
-                }
-            });
-        }*/
     }
 }
