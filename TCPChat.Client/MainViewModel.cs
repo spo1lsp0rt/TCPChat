@@ -15,6 +15,10 @@ using System.ComponentModel;
 using System.ComponentModel.Design;
 using System.Windows.Automation.Peers;
 using System.Windows.Automation.Provider;
+using System.Drawing;
+using System.Buffers.Text;
+using Microsoft.WindowsAPICodePack.Dialogs;
+using Microsoft.WindowsAPICodePack.Shell;
 
 namespace TCPChat.Client
 {
@@ -27,27 +31,12 @@ namespace TCPChat.Client
         public string NewChatName { get; set; } = "Новая комната";
         public string SelectedChatName { get; set; }
         public string SelectedClientName { get; set; }
-        public string Chat 
-        { 
-            get => GetValue<string>(); 
-            set => SetValue(value);
-        }
-        public string SystemChat
-        {
-            get => GetValue<string>();
-            set => SetValue(value);
-        }
-        public string PMChatName
-        {
-            get => GetValue<string>();
-            set => SetValue(value);
-        }
-        public string PMChat 
-        { 
-            get => GetValue<string>(); 
-            set => SetValue(value);
-        }
+        public string Chat { get => GetValue<string>(); set => SetValue(value); }
+        public string SystemChat { get => GetValue<string>(); set => SetValue(value); }
+        public string PMChatName { get => GetValue<string>(); set => SetValue(value); }
+        public string PMChat { get => GetValue<string>(); set => SetValue(value); }
         public string Message { get => GetValue<string>(); set => SetValue(value); }
+        public string FileName { get => GetValue<string>(); set => SetValue(value); }
         public string PersonalMessage { get => GetValue<string>(); set => SetValue(value); }
         public ObservableCollection<string> Users { get; set; } = new ObservableCollection<string>();
         public ObservableCollection<string> ChatList { get; set; } = new ObservableCollection<string>();
@@ -92,23 +81,6 @@ namespace TCPChat.Client
                                                     PMChat = cdata.Chat;
                                                 }
                                             }
-                                            /*else
-                                            {
-                                                var tempUsers = Users;
-                                                App.Current.Dispatcher.Invoke((Action)delegate
-                                                {
-                                                    Users.Clear();
-                                                    foreach (string nick in tempUsers)
-                                                    {
-                                                        string temp = nick;
-                                                        if (temp == Name)
-                                                            temp += " (Я)";
-                                                        if (temp == SelectedClientName)
-                                                            temp += " Новое сообщение";
-                                                        Users.Add(temp);
-                                                    }
-                                                });
-                                            }*/
                                             break;
                                         }
                                     case ChatType.Common:
@@ -286,6 +258,41 @@ namespace TCPChat.Client
                             var time = DateTime.UtcNow;
                             _writer?.WriteLine($"PM: {SelectedClientName} [{time.Hour}:{time.Minute}:{time.Second}] {Name}: {PersonalMessage}");
                             PersonalMessage = "";
+                        }
+                    });
+                }, () => _client?.Connected == true);
+            }
+        }
+        public AsyncCommand SendFileCommand
+        {
+            get
+            {
+                return new AsyncCommand(() =>
+                {
+                    return Task.Run(() =>
+                    {
+                        try
+                        {
+
+                            if (!string.IsNullOrWhiteSpace(FileName))
+                            {
+                                string path = FileName;
+                                int i = path.LastIndexOfAny(new char[] { '\\' }) + 1;
+                                string name = path.Substring(i);
+                                Byte[] bytes = File.ReadAllBytes(path);
+                                String file = Convert.ToBase64String(bytes);
+                                FileName = "🗎";
+                                //"E:\\Downloads\\folder\\Презентация Microsoft PowerPoint.pptx"
+
+                                //---
+                                string downloadsPath = KnownFolders.Downloads.Path;
+                                Byte[] bytes1 = Convert.FromBase64String(file);
+                                File.WriteAllBytes(downloadsPath + "\\" + name, bytes);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show(ex.Message);
                         }
                     });
                 }, () => _client?.Connected == true);

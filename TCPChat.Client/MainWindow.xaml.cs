@@ -20,6 +20,8 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Microsoft.WindowsAPICodePack.Dialogs;
+
 
 namespace TCPChat.Client
 {
@@ -75,6 +77,13 @@ namespace TCPChat.Client
         private void TextBox_TextChanged_1(object sender, TextChangedEventArgs e)
         {
             tbSystemMessages.ScrollToEnd();
+        }
+
+        private void btnChooseFile_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new CommonOpenFileDialog();
+            CommonFileDialogResult result = dialog.ShowDialog();
+            string folder = dialog.FileName;
         }
     }
 }

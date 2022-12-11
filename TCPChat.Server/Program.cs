@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 using System.Text.Json;
 using System.Xml.Linq;
 using System.Collections.ObjectModel;
+using System.Buffers.Text;
+using System.Text;
 
 namespace TCPChat.Server
 {
@@ -99,7 +101,8 @@ namespace TCPChat.Server
                             }
                             else if (line.StartsWith("File: "))
                             {
-
+                                /*string encodedStr = Convert.ToBase64String(Encoding.UTF8.GetBytes("inputStr")); 
+                                string inputStr = Encoding.UTF8.GetString(Convert.FromBase64String(encodedStr));*/
                             }
                             else if (line.StartsWith("PM: "))
                             {

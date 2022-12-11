@@ -101,7 +101,10 @@
                     <RowDefinition Height="1*"/>
                     <RowDefinition Height="1*"/>
                 </Grid.RowDefinitions>
-                <ListBox Grid.Row="0"
+                <ListBox x:Name="lbClientList"
+                         Grid.Row="0"
+                         Grid.RowSpan="1"
+                         Panel.ZIndex="1"
                          ItemsSource="{Binding Users}" Margin="3,3,3,3"
                          SelectedItem="{Binding SelectedClientName}"
                          MouseDoubleClick="ListBox_MouseDoubleClick"/>
@@ -111,9 +114,8 @@
                         <RowDefinition Height="5*"/>
                         <RowDefinition Height="1*"/>
                     </Grid.RowDefinitions>
-                    <TextBox Grid.Row="0" 
+                    <TextBox Grid.Row="0" Panel.ZIndex="1"
                              Text="{Binding PMChatName}" 
-                             Panel.ZIndex="1" 
                              Background="White" 
                              IsReadOnly="True"/>
                     <TextBox Grid.Row="0" Grid.RowSpan="2" x:Name="tbPMChat"
@@ -145,11 +147,13 @@
 
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="14*"/>
+                <ColumnDefinition Width="13*"/>
+                <ColumnDefinition Width="1*"/>
                 <ColumnDefinition Width="1*"/>
                 <ColumnDefinition Width="5*"/>
             </Grid.ColumnDefinitions>
-            <TextBox MaxLines="5"
+            <TextBox x:Name="tbMessage"
+                     MaxLines="5"
                      Text="{Binding Message}"
                      TextAlignment="Left"
                      TextWrapping="Wrap"/>
@@ -158,6 +162,11 @@
                 Grid.Column="1"
                 Command="{Binding SendCommand}"
                 Content="✉"/>
+            <Button
+                x:Name="btnChooseFile"
+                Grid.Column="2"
+                Command="{Binding SendFileCommand}"
+                Content="🗎" Click="btnChooseFile_Click" />
         </Grid>
     </Grid>
 </Window>
