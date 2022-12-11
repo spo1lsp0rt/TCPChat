@@ -76,8 +76,9 @@ namespace TCPChat.Client
                                 {
                                     case ChatType.PM:
                                         {
-                                            if (cdata.Clients.Contains(SelectedClientName))
+                                            if (cdata.Clients.Contains(SelectedClientName) || string.IsNullOrWhiteSpace(SelectedClientName))
                                             {
+                                                SelectedClientName = cdata.Clients.First(s => s != Name);
                                                 PMChatName = $"PM: {SelectedClientName}";
                                                 if (cdata.Chat != null)
                                                 {
@@ -91,6 +92,10 @@ namespace TCPChat.Client
                                                     Byte[] bytes = Convert.FromBase64String(cdata.FileBase);
                                                     File.WriteAllBytes(chatpath, bytes);
                                                 }
+                                            }
+                                            else
+                                            {
+                                                SystemChat += System.Environment.NewLine + "Новое сообщение от " + cdata.Clients.First(s => s != Name);
                                             }
                                             break;
                                         }
@@ -217,6 +222,10 @@ namespace TCPChat.Client
                                 MessageBox.Show(ex.Message);
                             }
                         }
+                        else
+                        {
+                            SelectedClientName = "";
+                        }
                     });
                 }, () => _client?.Connected == true);
             }
@@ -285,7 +294,7 @@ namespace TCPChat.Client
                             PersonalMessage = "";
                         }
                     });
-                }, () => _client?.Connected == true);
+                }, () => _client?.Connected == true && !string.IsNullOrWhiteSpace(SelectedClientName));
             }
         }
         public AsyncCommand SendFileCommand
