@@ -88,7 +88,7 @@ namespace TCPChat.Client
                                                     string downloadsPath = KnownFolders.Downloads.Path;
                                                     string chatpath = downloadsPath + "\\TCPChat\\" + PMChatName + cdata.FileName;
                                                     Directory.CreateDirectory(Path.GetDirectoryName(chatpath));
-                                                    Byte[] bytes = Convert.FromBase64String(cdata.FileBase64);
+                                                    Byte[] bytes = Convert.FromBase64String(cdata.FileBase);
                                                     File.WriteAllBytes(chatpath, bytes);
                                                 }
                                             }
@@ -108,18 +108,21 @@ namespace TCPChat.Client
                                                     chatpath += cdata.Name + "\\";
                                                 chatpath += cdata.FileName;
                                                 Directory.CreateDirectory(Path.GetDirectoryName(chatpath));
-                                                Byte[] bytes = Convert.FromBase64String(cdata.FileBase64);
+                                                Byte[] bytes = Convert.FromBase64String(cdata.FileBase);
                                                 File.WriteAllBytes(chatpath, bytes);
                                             }
-                                            App.Current.Dispatcher.Invoke((Action)delegate
+                                            if (cdata.ChatList != null)
                                             {
-                                                foreach (string chat in cdata.ChatList)
+                                                App.Current.Dispatcher.Invoke((Action)delegate
                                                 {
-                                                    if (!ChatList.Contains(chat))
-                                                        ChatList.Add(chat);
-                                                }
-                                            });
-                                            if (cdata.Clients.Count > 0)
+                                                    foreach (string chat in cdata.ChatList)
+                                                    {
+                                                        if (!ChatList.Contains(chat))
+                                                            ChatList.Add(chat);
+                                                    }
+                                                });
+                                            }
+                                            if (cdata.Clients != null)
                                             {
                                                 App.Current.Dispatcher.Invoke((Action)delegate
                                                 {

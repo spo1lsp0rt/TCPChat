@@ -75,7 +75,6 @@ namespace TCPChat.Server
                                 if (ok)
                                 {
                                     SendSystemMessageToAll($"{clientData.Name} создал чат {chatname}", ChatType.Common);
-                                    //JoinChat(clientData, chatData);
                                 }
                                 else SendSystemMessageToClient("Чат с таким названием уже есть", client, ChatType.Common);
                             }
@@ -102,21 +101,20 @@ namespace TCPChat.Server
                             }
                             else if (line.StartsWith("File: "))
                             {
-                                var temp = line.Substring(5);
-                                var name = temp.Substring(0, temp.IndexOfAny(new char[] { ':' }) - 1);
-                                var file = temp.Substring(name.Length);
+                                var temp = line.Substring(6);
+                                var name = temp.Substring(0, temp.IndexOfAny(new char[] { ':' }));
+                                var file = temp.Substring(name.Length + 1);
                                 ChatData activeChat = chatdataList.FirstOrDefault(s => s.Type == ChatType.Common && s.Clients.Contains(clientData.Name));
                                 string msg = $"{clientData.Name} отправил файл {name} (проверьте папку \"Downloads\")" + System.Environment.NewLine;
                                 activeChat.Chat += msg;
                                 activeChat.FileName = name;
-                                activeChat.FileBase64 = file;
+                                activeChat.FileBase = file;
                                 SendChatDataToAllInChat(activeChat);
                                 Console.WriteLine("Chat: " + activeChat.Name + " >> " + msg);
-
                             }
                             else if (line.StartsWith("PM: "))
                             {
-                                var temp = line.Substring(3);
+                                var temp = line.Substring(4);
                                 var receiver = temp.Substring(0, temp.IndexOfAny(new char[] { '[' }) - 1);
                                 var message = temp.Substring(receiver.Length);
                                 ChatData pmChat = chatdataList.FirstOrDefault(s => s.Type == ChatType.PM && s.Clients.Contains(clientData.Name) && s.Clients.Contains(receiver));
@@ -256,7 +254,7 @@ namespace TCPChat.Server
                 try
                 {
                     var time = DateTime.UtcNow;
-                    ChatData cdata = new ChatData(chattype, null, $"{System.Environment.NewLine}[{time.Hour}:{time.Minute}:{time.Second}] Система: {msg}", new System.Collections.ObjectModel.ObservableCollection<string>());
+                    ChatData cdata = new ChatData(chattype, null, null, null, $"{System.Environment.NewLine}[{time.Hour}:{time.Minute}:{time.Second}] Система: {msg}");
                     if (Clients != null && ChatList != null)
                     {
                         cdata.Clients = Clients;

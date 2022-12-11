@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.32126.317
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TCPChat.Client", "TCPChat.Client\TCPChat.Client.csproj", "{F6A5D157-BD4B-4330-B1FF-21BAFBB0E880}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TCPChat.Client", "TCPChat.Client\TCPChat.Client.csproj", "{F6A5D157-BD4B-4330-B1FF-21BAFBB0E880}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TCPChat.Server", "TCPChat.Server\TCPChat.Server.csproj", "{7FAE3386-F5DE-438F-B2E2-66DE1DD69476}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TCPChat.Server", "TCPChat.Server\TCPChat.Server.csproj", "{7FAE3386-F5DE-438F-B2E2-66DE1DD69476}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
